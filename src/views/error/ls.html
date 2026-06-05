@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>⚡ 传奇扫雷 · 闪电战+动态难度+种子分享 ⚡</title>
+    <style>
+        * {
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            min-height: 100vh;
+            background: radial-gradient(circle at 20% 30%, #1e2a2a, #0a1210);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Courier New', monospace;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: #2b2b2be0;
+            backdrop-filter: blur(2px);
+            border-radius: 68px;
+            box-shadow: 0 30px 45px rgba(0,0,0,0.6);
+            padding: 20px 24px 28px;
+            transition: all 0.2s;
+        }
+
+        .game-panel {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 28px;
+        }
+
+        .mine-area {
+            background: #31413b;
+            border-radius: 40px;
+            padding: 20px;
+            box-shadow: inset 0 0 8px #1f2c23, 0 15px 25px rgba(0,0,0,0.4);
+        }
+
+        .board {
+            display: grid;
+            gap: 3px;
+            background-color: #4b5e4a;
+            border-radius: 20px;
+            padding: 8px;
+            box-shadow: inset 0 0 0 2px #3c4f3a;
+        }
+
+        .cell {
+            background: #cbdbb2;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: 0.05s linear;
+            box-shadow: inset 0 -2px 0 #8b9a70;
+            aspect-ratio: 1 / 1;
+            min-width: 34px;
+        }
+        .cell:active { transform: scale(0.96); }
+        .cell.revealed { background: #eef0c3; cursor: default; transform: none; }
+        .cell.flagged::before { content: "🚩"; font-size: 1.2rem; }
+        .cell.flagged { background: #bcae6e; color: #b33; }
+        .cell[data-value="1"] { color: #1565C0; }
+        .cell[data-value="2"] { color: #2e7d32; }
+        .cell[data-value="3"] { color: #c62828; }
+        .cell[data-value="4"] { color: #6a1b9a; }
+        .cell[data-value="5"] { color: #bf360c; }
+        .cell[data-value="6"] { color: #00838f; }
+        .cell[data-value="7"] { color: #1a1a1a; }
+
+        .spirit-sidebar {
+            background: #1f2e2bdd;
+            backdrop-filter: blur(12px);
+            border-radius: 48px;
+            width: 280px;
+            padding: 18px 16px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+            text-align: center;
+            color: #fcf3cf;
+        }
+
+        .pet-avatar { font-size: 5rem; filter: drop-shadow(4px 8px 12px #00000066); cursor: pointer; }
+        .pet-name { font-weight: bold; background: #2e4742; display: inline-block; padding: 4px 14px; border-radius: 60px; margin-top: 6px; }
+        .pet-message {
+            background: #0f1917;
+            border-radius: 36px;
+            padding: 10px;
+            margin: 15px 0;
+            font-size: 0.8rem;
+            min-height: 70px;
+            box-shadow: inset 0 0 4px #b9e6b9;
+            color: #f9f0b6;
+        }
+        .mode-panel {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+        .mode-btn {
+            background: #2a423c;
+            color: #ffecb3;
+            font-size: 0.7rem;
+            padding: 6px 8px;
+            border-radius: 60px;
+            box-shadow: 0 2px 0 #14231f;
+            flex: 1;
+            cursor: pointer;
+        }
+        .mode-btn.active { background: #ffbe5e; color: #2a2b1f; box-shadow: 0 2px 0 #b97f2e; }
+        .stats { background: #232f2c; border-radius: 28px; padding: 8px; margin: 8px 0; display: flex; justify-content: space-between; font-weight: bold; font-size: 0.8rem; flex-wrap: wrap; gap: 5px; }
+        .counter-panel { background: #2d3e3a; border-radius: 32px; padding: 8px; margin: 5px 0; display: flex; justify-content: space-between; }
+        button {
+            background: #ffcf6e;
+            border: none;
+            font-weight: bold;
+            font-size: 0.8rem;
+            padding: 6px 10px;
+            border-radius: 60px;
+            cursor: pointer;
+            box-shadow: 0 3px 0 #8b6946;
+            margin-top: 6px;
+            font-family: monospace;
+        }
+        button:active { transform: translateY(2px); }
+        .hint-btn, .radar-btn { background: #6cc9b0; box-shadow: 0 3px 0 #3b6b5c; width: 100%; }
+        .reset-btn { background: #e9b35f; width: 100%; }
+        hr { border-color: #5b7c72; margin: 12px 0; }
+        .timer-box { background: #111e1b; padding: 4px 12px; border-radius: 36px; font-family: monospace; }
+        .highlight { animation: pulseGold 0.6s ease 3; background-color: #ffea80 !important; box-shadow: 0 0 0 2px #ffbf00 !important; }
+        @keyframes pulseGold {
+            0% { background-color: #ffd966; transform: scale(0.98);}
+            100% { background-color: #fff2b5; transform: scale(1);}
+        }
+        footer { font-size: 0.7rem; text-align: center; margin-top: 18px; color: #b7cfbf; }
+        .event-badge { background: #4e3b2c; border-radius: 30px; padding: 5px; font-size: 0.7rem; margin: 8px 0; }
+        .seed-area { display: flex; gap: 6px; margin-top: 10px; align-items: center; }
+        .seed-input { background: #2a3a36; border: none; border-radius: 60px; padding: 6px 10px; color: #ffecb3; width: 100px; font-size: 0.7rem; text-align: center; }
+        @media (max-width: 750px) {
+            .spirit-sidebar { width: 260px; }
+            .cell { min-width: 28px; font-size: 1rem; }
+        }
+        .blink-red { animation: blinkWarning 0.5s step-end infinite; }
+        @keyframes blinkWarning { 50% { background-color: #c0392b; color: white; } }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <div class="game-panel">
+        <div class="mine-area">
+            <div class="board" id="board"></div>
+            <div style="display: flex; justify-content: space-between; margin-top: 14px; gap: 10px;">
+                <div class="counter-panel" style="flex:1">
+                    <span>🚩 <span id="flagCount">0</span> / <span id="totalMinesDisplay">10</span></span>
+                    <span>💥 <span id="remainMinesHint">10</span></span>
+                </div>
+                <div class="timer-box" id="timerDisplay">⏱️ 00:00</div>
+            </div>
+        </div>
+
+        <div class="spirit-sidebar">
+            <div class="pet-avatar" id="petAvatar">⛏️🐉</div>
+            <div class="pet-name" id="petLevelName">✨ 幼年龙鼹 ✨</div>
+            <div class="pet-message" id="petMessage">选择模式，开始冒险！</div>
+            
+            <div class="mode-panel">
+                <div class="mode-btn" data-mode="standard">⚔️ 标准</div>
+                <div class="mode-btn" data-mode="daily">📅 每日雷区</div>
+                <div class="mode-btn" data-mode="endless">♾️ 无尽</div>
+                <div class="mode-btn" data-mode="blitz">⚡ 闪电战</div>
+            </div>
+            
+            <!-- 动态难度提示 -->
+            <div class="stats" style="background:#1a2f2a;">
+                <span>📊 动态难度: <span id="dynamicLevel">-</span></span>
+                <span>🎲 种子分享</span>
+            </div>
+            <div class="seed-area">
+                <input type="text" id="seedInput" class="seed-input" placeholder="种子码">
+                <button id="loadSeedBtn">📥 加载</button>
+                <button id="copySeedBtn">📋 复制当前</button>
+            </div>
+
+            <div class="stats">
+                <span>🏆 总晶核: <span id="totalCrystal">0</span></span>
+                <span>⭐ 等级: <span id="petLevel">1</span></span>
+                <span>⚡ 连击: <span id="comboValue">0</span>x</span>
+            </div>
+            <div class="event-badge" id="eventDisplay">🌿 当前事件: 无</div>
+
+            <div class="tips-left"><span>🔮 智慧之爪</span><span id="hintRemain">❤️ 剩余 3 次</span></div>
+            <button id="hintButton" class="hint-btn">🐾 安全指引</button>
+            <div class="tips-left"><span>📡 龙晶雷达</span><span id="radarRemain">🔴 剩余 1 次</span></div>
+            <button id="radarButton" class="radar-btn">🔍 探测地雷</button>
+            <button id="resetButton" class="reset-btn">🔄 重铸雷域</button>
+            <hr>
+            <div style="font-size: 0.7rem;">✨ 闪电战: 限时60秒，挖格+2秒<br>📊 动态难度根据最近5局胜率自动调整雷数</div>
+        </div>
+    </div>
+    <footer>左键挖矿 | 右键🚩标记 | 种子分享: 复制/加载自定义雷区</footer>
+</div>
+
+<script>
+(function(){
+    // ========== DOM 元素 ==========
+    const boardEl = document.getElementById('board');
+    const flagCountSpan = document.getElementById('flagCount');
+    const remainMinesHintSpan = document.getElementById('remainMinesHint');
+    const totalMinesDisplaySpan = document.getElementById('totalMinesDisplay');
+    const hintRemainSpan = document.getElementById('hintRemain');
+    const radarRemainSpan = document.getElementById('radarRemain');
+    const resetBtn = document.getElementById('resetButton');
+    const hintBtn = document.getElementById('hintButton');
+    const radarBtn = document.getElementById('radarButton');
+    const petMessageEl = document.getElementById('petMessage');
+    const petAvatar = document.getElementById('petAvatar');
+    const comboDisplay = document.getElementById('comboValue');
+    const totalCrystalSpan = document.getElementById('totalCrystal');
+    const petLevelSpan = document.getElementById('petLevel');
+    const petLevelNameSpan = document.getElementById('petLevelName');
+    const eventDisplaySpan = document.getElementById('eventDisplay');
+    const timerDisplaySpan = document.getElementById('timerDisplay');
+    const dynamicLevelSpan = document.getElementById('dynamicLevel');
+    const seedInput = document.getElementById('seedInput');
+    const loadSeedBtn = document.getElementById('loadSeedBtn');
+    const copySeedBtn = document.getElementById('copySeedBtn');
+
+    // ========== 游戏核心状态 ==========
+    let ROWS = 9, COLS = 9, TOTAL_MINES = 10;
+    let boardData = [], gameActive = true, winFlag = false;
+    let flagPlacedCount = 0, currentRevealCount = 0;
+    let hintTimes = 3, radarTimes = 1;
+    let score = 0, combo = 0;
+    let timerSeconds = 0, timerInterval = null;
+    let currentMode = "standard";     // standard, daily, endless, blitz
+    let endlessStreak = 0;
+    let dailySeed = null;
+    let currentEvent = null;
+    let revealCounterForEvent = 0;
+    let customSeed = null;            // 用于种子分享模式
+    
+    // 动态难度统计 (存储最近5局胜率)
+    let recentGames = []; // 存储 { won: boolean, mode: string }
+    
+    // 闪电战倒计时专用
+    let blitzTimeLeft = 60;    // 秒
+    let isBlitzMode = false;
+    
+    // 宠物养成
+    let totalCrystal = 0;
+    let petLevel = 1;
+    
+    // 事件池
+    const EVENT_POOL = [
+        { name: "🌋 雷暴诅咒", desc: "每揭开10格，随机引爆一个未翻开格子", effectType: "storm", extra: null },
+        { name: "💰 宝藏矿脉", desc: "安全格子得分+50%", effectType: "bonus", extra: 0.5 },
+        { name: "🌫️ 迷雾领域", desc: "数字不显示，需猜测", effectType: "fog", extra: null },
+        { name: "✨ 精灵祝福", desc: "提示和雷达次数+1", effectType: "bless", extra: null },
+        { name: "⚡ 连锁闪电", desc: "每挖开一个数字3以上会额外炸开周围一格", effectType: "chain", extra: null }
+    ];
+    
+    // ========== 宠物养成 ==========
+    function loadPetData() {
+        let saved = localStorage.getItem('mineSweeperCrystal');
+        if(saved) totalCrystal = parseInt(saved) || 0;
+        updatePetLevel();
+        totalCrystalSpan.innerText = totalCrystal;
+        // 加载历史战绩用于动态难度
+        let savedHistory = localStorage.getItem('mineSweeperHistory');
+        if(savedHistory) recentGames = JSON.parse(savedHistory);
+        else recentGames = [];
+        updateDynamicDifficultyDisplay();
+    }
+    function savePetData() { localStorage.setItem('mineSweeperCrystal', totalCrystal); }
+    function addCrystal(amount) { totalCrystal += amount; totalCrystalSpan.innerText = totalCrystal; savePetData(); updatePetLevel(); }
+    function updatePetLevel() {
+        let newLevel = Math.floor(totalCrystal / 500) + 1;
+        if(newLevel > 20) newLevel = 20;
+        petLevel = newLevel;
+        petLevelSpan.innerText = petLevel;
+        if(petLevel >= 15) petLevelNameSpan.innerText = "✨ 上古龙神 ✨";
+        else if(petLevel >= 10) petLevelNameSpan.innerText = "⭐ 晶核龙王 ⭐";
+        else if(petLevel >= 5) petLevelNameSpan.innerText = "🔥 烈焰龙鼹 🔥";
+        else petLevelNameSpan.innerText = "🌱 幼年龙鼹 🌱";
+    }
+    function getBonusFromLevel() { return { hintBonus: Math.floor(petLevel / 3), radarBonus: Math.floor(petLevel / 5) }; }
+    
+    // 动态难度: 根据最近5局标准模式胜率调整雷数偏移
+    function updateDynamicDifficultyDisplay() {
+        let recent = recentGames.filter(g => g.mode === 'standard').slice(-5);
+        if(recent.length === 0) { dynamicLevelSpan.innerText = "未定"; return; }
+        let wins = recent.filter(g => g.won).length;
+        let rate = wins / recent.length;
+        if(rate >= 0.8) dynamicLevelSpan.innerText = "🔥 极难 (+15%雷)";
+        else if(rate >= 0.6) dynamicLevelSpan.innerText = "⚙️ 困难 (+5%雷)";
+        else if(rate >= 0.4) dynamicLevelSpan.innerText = "🌿 普通";
+        else if(rate >= 0.2) dynamicLevelSpan.innerText = "🍃 简单 (-10%雷)";
+        else dynamicLevelSpan.innerText = "🌸 新手 (-20%雷)";
+    }
+    function getDynamicMineAdjustment() {
+        let recent = recentGames.filter(g => g.mode === 'standard').slice(-5);
+        if(recent.length < 3) return 0; // 样本不足
+        let wins = recent.filter(g => g.won).length;
+        let rate = wins / recent.length;
+        if(rate >= 0.8) return 0.15;   // 增加15%雷
+        if(rate >= 0.6) return 0.05;
+        if(rate >= 0.4) return 0;
+        if(rate >= 0.2) return -0.10;
+        return -0.20;
+    }
+    function recordGameResult(won, mode) {
+        recentGames.push({ won, mode, timestamp: Date.now() });
+        if(recentGames.length > 20) recentGames = recentGames.slice(-20);
+        localStorage.setItem('mineSweeperHistory', JSON.stringify(recentGames));
+        updateDynamicDifficultyDisplay();
+    }
+    
+    // ========== 辅助UI ==========
+    function setPetMessage(msg, emotion = 'normal') {
+        petMessageEl.innerHTML = msg;
+        if(emotion === 'happy') {
+            petAvatar.style.transform = 'scale(1.1)';
+            setTimeout(()=>{ petAvatar.style.transform = ''; }, 300);
+            petAvatar.innerText = '😸⛏️🐉';
+            setTimeout(()=>{ if(!winFlag && gameActive) petAvatar.innerText = '⛏️🐉'; else if(winFlag) petAvatar.innerText = '🏆🐉🎉'; else if(!gameActive && !winFlag) petAvatar.innerText = '💀🐉'; }, 700);
+        } else if(emotion === 'sad') {
+            petAvatar.innerText = '😭🐉💥';
+            setTimeout(()=>{ if(!winFlag && gameActive) petAvatar.innerText = '⛏️🐉'; else if(winFlag) petAvatar.innerText = '🏆🐉🎉'; else if(!gameActive && !winFlag) petAvatar.innerText = '💀🐉'; }, 900);
+        } else if(emotion === 'win') {
+            petAvatar.innerText = '🎉🐉🏆✨';
+            petAvatar.style.animation = 'shake 0.4s';
+            setTimeout(()=>{ petAvatar.style.animation = ''; }, 500);
+        } else {
+            if(!winFlag && gameActive) petAvatar.innerText = '⛏️🐉';
+            else if(winFlag) petAvatar.innerText = '🏆🐉🎉';
+            else if(!gameActive && !winFlag) petAvatar.innerText = '💀🐉';
+        }
+    }
+    
+    function updateFlagUI() { flagCountSpan.innerText = flagPlacedCount; let rem = TOTAL_MINES - flagPlacedCount; if(rem<0) rem=0; remainMinesHintSpan.innerText = rem; }
+    function updateSpecialUI() { hintRemainSpan.innerText = `❤️ 剩余 ${hintTimes} 次`; radarRemainSpan.innerText = `🔴 剩余 ${radarTimes} 次`; if(hintTimes<=0) hintBtn.disabled=true; else hintBtn.disabled=false; if(radarTimes<=0 || !gameActive || winFlag) radarBtn.disabled=true; else radarBtn.disabled=false; }
+    function updateComboUI() { comboDisplay.innerText = combo; }
+    function resetCombo() { combo = 0; updateComboUI(); }
+    
+    // 计时器管理 (支持倒计时)
+    function stopTimer() { if(timerInterval) { clearInterval(timerInterval); timerInterval = null; } }
+    function startTimer() {
+        if(timerInterval) stopTimer();
+        timerInterval = setInterval(() => {
+            if(!gameActive || winFlag) return;
+            if(isBlitzMode) {
+                if(blitzTimeLeft <= 0) {
+                    // 时间到，游戏结束
+                    gameActive = false;
+                    winFlag = false;
+                    stopTimer();
+                    setPetMessage("⏰ 时间耗尽！闪电战失败", "sad");
+                    renderBoard();
+                    return;
+                }
+                blitzTimeLeft--;
+                timerDisplaySpan.innerText = `⚡ ${blitzTimeLeft}s`;
+                if(blitzTimeLeft <= 5) timerDisplaySpan.classList.add('blink-red');
+                else timerDisplaySpan.classList.remove('blink-red');
+            } else {
+                timerSeconds++;
+                let mins = Math.floor(timerSeconds / 60);
+                let secs = timerSeconds % 60;
+                timerDisplaySpan.innerText = `⏱️ ${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+            }
+        }, 1000);
+    }
+    function resetTimer() {
+        stopTimer();
+        if(isBlitzMode) {
+            blitzTimeLeft = 60;
+            timerDisplaySpan.innerText = `⚡ 60s`;
+            timerDisplaySpan.classList.remove('blink-red');
+        } else {
+            timerSeconds = 0;
+            timerDisplaySpan.innerText = `⏱️ 00:00`;
+        }
+        if(gameActive && !winFlag) startTimer();
+    }
+    // 闪电战挖格子增加时间
+    function addBlitzTime(seconds=2) {
+        if(isBlitzMode && gameActive && !winFlag) {
+            blitzTimeLeft += seconds;
+            if(blitzTimeLeft > 99) blitzTimeLeft = 99;
+            timerDisplaySpan.innerText = `⚡ ${blitzTimeLeft}s`;
+        }
+    }
+    
+    // 得分逻辑
+    function addScoreForReveal() {
+        let bonus = Math.min(combo * 2, 30);
+        let gain = 10 + bonus;
+        if(currentEvent && currentEvent.effectType === "bonus") gain = Math.floor(gain * (1 + (currentEvent.extra || 0)));
+        score += gain;
+        combo++;
+        updateComboUI();
+        setPetMessage(`✨ +${gain}分 (连击x${combo})`, "happy");
+        if(isBlitzMode) addBlitzTime(2);
+    }
+    
+    function shouldHideNumber() { return currentEvent && currentEvent.effectType === "fog"; }
+    
+    function applyEventEffectOnReveal(row, col) {
+        if(!currentEvent || !gameActive) return;
+        if(currentEvent.effectType === "storm") {
+            revealCounterForEvent++;
+            if(revealCounterForEvent % 10 === 0) {
+                let candidates = [];
+                for(let i=0;i<ROWS;i++) for(let j=0;j<COLS;j++) {
+                    let c = boardData[i][j];
+                    if(!c.revealed && !c.flagged && !c.isMine) candidates.push({row:i, col:j});
+                }
+                if(candidates.length) {
+                    let rand = candidates[Math.floor(Math.random() * candidates.length)];
+                    setPetMessage(`🌩️ 雷暴诅咒！(${rand.row+1},${rand.col+1}) 被随机引爆！`, "sad");
+                    revealCell(rand.row, rand.col, true);
+                }
+            }
+        } else if(currentEvent.effectType === "chain" && boardData[row][col].revealed && !boardData[row][col].isMine && boardData[row][col].neighborMines >= 3) {
+            let neighbors = [];
+            for(let di=-1;di<=1;di++) for(let dj=-1;dj<=1;dj++) {
+                if(di===0 && dj===0) continue;
+                let ni=row+di, nj=col+dj;
+                if(ni>=0 && ni<ROWS && nj>=0 && nj<COLS && !boardData[ni][nj].revealed && !boardData[ni][nj].flagged && !boardData[ni][nj].isMine) neighbors.push({row:ni, col:nj});
+            }
+            if(neighbors.length) {
+                let rand = neighbors[Math.floor(Math.random() * neighbors.length)];
+                setPetMessage(`⚡ 连锁闪电! 额外炸开 (${rand.row+1},${rand.col+1})`, "happy");
+                revealCell(rand.row, rand.col, false);
+            }
+        }
+    }
+    
+    function revealCell(row, col, forceExplode = false) {
+        const cell = boardData[row][col];
+        if(!gameActive || winFlag) return false;
+        if(cell.revealed) return false;
+        if(cell.flagged && !forceExplode) { setPetMessage("🚩 旗子挡住了", "sad"); return false; }
+        if(cell.isMine && !forceExplode) {
+            cell.revealed = true;
+            gameActive = false;
+            winFlag = false;
+            stopTimer();
+            setPetMessage(`💥 踩雷！游戏结束`, "sad");
+            renderBoard();
+            return false;
+        }
+        if(!cell.revealed) {
+            cell.revealed = true;
+            currentRevealCount++;
+            addScoreForReveal();
+            if(cell.neighborMines === 0 && !forceExplode) {
+                for(let di=-1;di<=1;di++) for(let dj=-1;dj<=1;dj++) {
+                    if(di===0 && dj===0) continue;
+                    let ni=row+di, nj=col+dj;
+                    if(ni>=0 && ni<ROWS && nj>=0 && nj<COLS && !boardData[ni][nj].revealed && !boardData[ni][nj].flagged && !boardData[ni][nj].isMine) revealCell(ni, nj, false);
+                }
+            }
+            if(!forceExplode) applyEventEffectOnReveal(row, col);
+        }
+        renderBoard();
+        checkVictory();
+        return true;
+    }
+    
+    function toggleFlag(row, col) {
+        if(!gameActive || winFlag) return false;
+        const cell = boardData[row][col];
+        if(cell.revealed) return false;
+        if(!cell.flagged) {
+            if(flagPlacedCount >= TOTAL_MINES) { setPetMessage(`旗子上限`, "sad"); return false; }
+            cell.flagged = true; flagPlacedCount++;
+        } else { cell.flagged = false; flagPlacedCount--; }
+        updateFlagUI();
+        renderBoard();
+        return true;
+    }
+    
+    function giveHint() {
+        if(!gameActive || winFlag) { setPetMessage("游戏未进行", "sad"); return; }
+        if(hintTimes <= 0) { setPetMessage("智慧之爪能量耗尽", "sad"); return; }
+        let safe = [];
+        for(let i=0;i<ROWS;i++) for(let j=0;j<COLS;j++) { let c=boardData[i][j]; if(!c.revealed && !c.isMine && !c.flagged) safe.push({row:i,col:j}); }
+        if(safe.length===0) return;
+        let rand = safe[Math.floor(Math.random()*safe.length)];
+        let idx = rand.row*COLS+rand.col;
+        let cells = document.querySelectorAll('.cell');
+        if(cells[idx]) { cells[idx].classList.add('highlight'); setTimeout(()=>cells[idx].classList.remove('highlight'),900); }
+        hintTimes--; updateSpecialUI();
+        setPetMessage(`🔮 安全指引: (${rand.row+1},${rand.col+1})`, "hint");
+    }
+    
+    function radarDetect() {
+        if(!gameActive || winFlag) return;
+        if(radarTimes<=0) return;
+        let mines = [];
+        for(let i=0;i<ROWS;i++) for(let j=0;j<COLS;j++) if(boardData[i][j].isMine && !boardData[i][j].revealed && !boardData[i][j].flagged) mines.push({row:i,col:j});
+        if(mines.length===0) return;
+        let target = mines[Math.floor(Math.random()*mines.length)];
+        let idx = target.row*COLS+target.col;
+        let cells = document.querySelectorAll('.cell');
+        if(cells[idx]) { cells[idx].classList.add('highlight'); setTimeout(()=>cells[idx].classList.remove('highlight'),1200); }
+        radarTimes--; updateSpecialUI();
+        setPetMessage(`📡 雷雷达: (${target.row+1},${target.col+1}) 藏有地雷`, "radar");
+    }
+    
+    function checkVictory() {
+        let totalSafe = ROWS*COLS - TOTAL_MINES;
+        if(currentRevealCount === totalSafe && gameActive && !winFlag) {
+            winFlag = true; gameActive = false; stopTimer();
+            let winBonus = 300 + combo * 10;
+            score += winBonus;
+            addCrystal(score);
+            setPetMessage(`🏆 胜利！获得${winBonus}分+晶核${score}`, "win");
+            if(currentMode === "endless") endlessStreak++;
+            else if(currentMode === "standard") recordGameResult(true, "standard");
+            if(currentMode === "blitz") recordGameResult(true, "blitz");
+            renderBoard();
+            for(let i=0;i<30;i++) { let d=document.createElement('div'); d.innerText='🎉'; d.style.position='fixed'; d.style.left=Math.random()*window.innerWidth+'px'; d.style.top='-30px'; d.style.fontSize=(15+Math.random()*25)+'px'; d.style.pointerEvents='none'; d.style.zIndex=9999; d.style.transition='all 1s'; document.body.appendChild(d); setTimeout(()=>{ d.style.top=window.innerHeight+'px'; d.style.opacity='0'; },20); setTimeout(()=>d.remove(),1200); }
+            return true;
+        }
+        return false;
+    }
+    
+    function selectRandomEvent() {
+        if(currentMode === "daily") { let seed = dailySeed || 0; let idx = seed % EVENT_POOL.length; return { ...EVENT_POOL[idx] }; }
+        let idx = Math.floor(Math.random() * EVENT_POOL.length);
+        return { ...EVENT_POOL[idx] };
+    }
+    
+    function getBoardParameters() {
+        let baseRows=9, baseCols=9, baseMines=10;
+        if(currentMode === "daily") return { rows:12, cols:12, mines:30 };
+        if(currentMode === "endless") {
+            let add = Math.min(endlessStreak, 15);
+            let newMines = baseMines + add;
+            if(newMines > baseRows*baseCols-5) newMines = baseRows*baseCols-5;
+            return { rows:baseRows, cols:baseCols, mines:newMines };
+        }
+        if(currentMode === "blitz") return { rows:10, cols:10, mines:20 }; // 闪电战固定10x10 20雷
+        // 标准模式 + 动态难度
+        let adj = getDynamicMineAdjustment();
+        let adjMines = Math.floor(10 * (1 + adj));
+        if(adjMines < 5) adjMines = 5;
+        if(adjMines > 40) adjMines = 40;
+        return { rows:9, cols:9, mines:adjMines };
+    }
+    
+    function placeMines(seed) {
+        let rng = (function() {
+            let s = seed !== undefined ? seed : Math.random() * 1000000;
+            return function() { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+        })();
+        let minesPlaced=0;
+        while(minesPlaced < TOTAL_MINES) {
+            let row = Math.floor((seed !== undefined ? rng() : Math.random()) * ROWS);
+            let col = Math.floor((seed !== undefined ? rng() : Math.random()) * COLS);
+            if(!boardData[row][col].isMine) {
+                boardData[row][col].isMine = true;
+                minesPlaced++;
+            }
+        }
+    }
+    
+    function renderBoard() {
+        boardEl.innerHTML = '';
+        for(let i=0;i<ROWS;i++) {
+            for(let j=0;j<COLS;j++) {
+                const cell = boardData[i][j];
+                const div = document.createElement('div');
+                div.classList.add('cell');
+                div.setAttribute('data-row', i); div.setAttribute('data-col', j);
+                if(cell.revealed) {
+                    div.classList.add('revealed');
+                    if(cell.isMine) div.innerText = '💣';
+                    else {
+                        let val = cell.neighborMines;
+                        if(val === 0) div.innerText = '';
+                        else {
+                            if(shouldHideNumber() && !cell.isMine) div.innerText = '?';
+                            else div.innerText = val;
+                            if(!shouldHideNumber()) div.setAttribute('data-value', val);
+                        }
+                    }
+                } else {
+                    if(cell.flagged) { div.classList.add('flagged'); div.innerHTML = ''; }
+                    else div.innerText = '';
+                }
+                if(!gameActive && !winFlag && cell.isMine && !cell.revealed) { div.innerText = '💣'; div.classList.add('revealed'); div.style.background='#e6a3a3'; }
+                boardEl.appendChild(div);
+            }
+        }
+    }
+    
+    function updateBoardGridStyle() { boardEl.style.gridTemplateColumns = `repeat(${COLS}, minmax(34px, 46px))`; }
+    
+    // 生成当前雷区的种子码 (基于布雷随机种子)
+    let currentSeedForShare = null;
+    function generateSeedFromBoard() {
+        // 简单方式：将雷区坐标编码为字符串 (仅用于分享)
+        let mineCoords = [];
+        for(let i=0;i<ROWS;i++) for(let j=0;j<COLS;j++) if(boardData[i][j].isMine) mineCoords.push(`${i},${j}`);
+        let seedStr = btoa(unescape(encodeURIComponent(JSON.stringify({rows:ROWS, cols:COLS, mines:mineCoords, mode:currentMode}))));
+        return seedStr.substring(0, 32);
+    }
+    function loadSeedFromString(seedStr) {
+        try {
+            let decoded = JSON.parse(decodeURIComponent(escape(atob(seedStr))));
+            if(decoded.rows && decoded.cols && decoded.mines) {
+                customSeed = decoded;
+                fullReset(true);
+                return true;
+            }
+        } catch(e) { return false; }
+        return false;
+    }
+    
+    function initNewGame(useCustomSeed = false) {
+        stopTimer();
+        let params = getBoardParameters();
+        if(useCustomSeed && customSeed) {
+            ROWS = customSeed.rows; COLS = customSeed.cols; TOTAL_MINES = customSeed.mines.length;
+            boardData = [];
+            for(let i=0;i<ROWS;i++) { boardData[i]=[]; for(let j=0;j<COLS;j++) boardData[i][j]={ isMine:false, neighborMines:0, revealed:false, flagged:false }; }
+            for(let mc of customSeed.mines) { let [r,c] = mc.split(','); if(boardData[r] && boardData[r][c]) boardData[r][c].isMine = true; }
+        } else {
+            ROWS = params.rows; COLS = params.cols; TOTAL_MINES = params.mines;
+            boardData = [];
+            for(let i=0;i<ROWS;i++) { boardData[i]=[]; for(let j=0;j<COLS;j++) boardData[i][j]={ isMine:false, neighborMines:0, revealed:false, flagged:false }; }
+            let seedVal = null;
+            if(currentMode === "daily") {
+                let today = new Date().toISOString().slice(0,10).replace(/-/g,'');
+                seedVal = parseInt(today) + 12345;
+                dailySeed = seedVal;
+                placeMines(seedVal);
+            } else {
+                placeMines(null);
+            }
+        }
+        // 计算邻居
+        for(let i=0;i<ROWS;i++) for(let j=0;j<COLS;j++) {
+            if(boardData[i][j].isMine) { boardData[i][j].neighborMines=-1; continue; }
+            let cnt=0;
+            for(let di=-1;di<=1;di++) for(let dj=-1;dj<=1;dj++) { if(di===0&&dj===0) continue; let ni=i+di, nj=j+dj; if(ni>=0 && ni<ROWS && nj>=0 && nj<COLS && boardData[ni][nj].isMine) cnt++; }
+            boardData[i][j].neighborMines = cnt;
+        }
+        gameActive = true; winFlag = false; flagPlacedCount = 0; currentRevealCount = 0; score = 0; combo = 0; updateComboUI();
+        let bonus = getBonusFromLevel();
+        hintTimes = 3 + bonus.hintBonus; radarTimes = 1 + bonus.radarBonus;
+        updateSpecialUI(); updateFlagUI();
+        currentEvent = selectRandomEvent();
+        if(currentEvent.effectType === "bless") { hintTimes+=1; radarTimes+=1; updateSpecialUI(); }
+        eventDisplaySpan.innerHTML = `🌪️ ${currentEvent.name}<br><span style="font-size:0.65rem">${currentEvent.desc}</span>`;
+        revealCounterForEvent = 0;
+        isBlitzMode = (currentMode === "blitz");
+        totalMinesDisplaySpan.innerText = TOTAL_MINES;
+        resetTimer();
+        updateBoardGridStyle();
+        renderBoard();
+        setPetMessage(`${currentEvent.name} 降临！ ${currentEvent.desc}`, "happy");
+    }
+    
+    function fullReset(useCustom=false) {
+        if(currentMode === "endless" && winFlag) initNewGame(useCustom);
+        else if(currentMode === "endless" && !winFlag) { endlessStreak = 0; initNewGame(useCustom); }
+        else initNewGame(useCustom);
+        if(currentMode !== "endless") endlessStreak = 0;
+        if(currentMode === "standard" && !winFlag) recordGameResult(false, "standard");
+        if(currentMode === "blitz" && !winFlag) recordGameResult(false, "blitz");
+    }
+    
+    function setMode(mode) {
+        currentMode = mode;
+        document.querySelectorAll('.mode-btn').forEach(btn => { if(btn.getAttribute('data-mode')===mode) btn.classList.add('active'); else btn.classList.remove('active'); });
+        if(mode === "endless") endlessStreak = 0;
+        fullReset();
+    }
+    
+    function bindEvents() {
+        boardEl.addEventListener('click', (e) => { let t=e.target.closest('.cell'); if(!t) return; let row=parseInt(t.getAttribute('data-row')), col=parseInt(t.getAttribute('data-col')); if(isNaN(row)) return; if(!gameActive||winFlag) return; let cell=boardData[row][col]; if(cell.flagged) { setPetMessage("先取消旗子", "sad"); return; } revealCell(row,col,false); });
+        boardEl.addEventListener('contextmenu', (e) => { e.preventDefault(); let t=e.target.closest('.cell'); if(!t) return; let row=parseInt(t.getAttribute('data-row')), col=parseInt(t.getAttribute('data-col')); if(isNaN(row)) return; toggleFlag(row,col); });
+        resetBtn.addEventListener('click', () => fullReset());
+        hintBtn.addEventListener('click', () => giveHint());
+        radarBtn.addEventListener('click', () => radarDetect());
+        document.querySelectorAll('.mode-btn').forEach(btn => btn.addEventListener('click', () => setMode(btn.getAttribute('data-mode'))));
+        loadSeedBtn.addEventListener('click', () => { let val = seedInput.value.trim(); if(val) loadSeedFromString(val); else setPetMessage("请输入种子码", "sad"); });
+        copySeedBtn.addEventListener('click', () => { let seed = generateSeedFromBoard(); seedInput.value = seed; navigator.clipboard.writeText(seed); setPetMessage("种子码已复制！", "happy"); });
+    }
+    
+    loadPetData();
+    bindEvents();
+    setMode("standard");
+})();
+</script>
+</body>
+</html>
