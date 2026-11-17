@@ -1,7 +1,6 @@
 import Mock from 'mockjs'
 
 
-
 // 在文件开头或 permissions 相关部分定义
 const permissionGroups = [
   { name: '基础资料', perms: ['商品管理', '客户管理'] },
@@ -15,8 +14,22 @@ const permissionGroups = [
 
 // 角色权限存储（提前声明，供登录 / 用户信息回调引用）
 const rolePermissionsStore = [
-  { role: 'admin', roleName: '管理员', perms: ['商品管理', '客户管理', '订单管理', '库存管理', '财务看板', '收支记录', '采购订单', '供应商管理', '销售报表', '库存报表', '财务报表', '用户管理', '员工管理', '权限管理', '操作日志', '数据字典', '个人中心'] },
-  { role: 'user', roleName: '普通用户', perms: ['商品管理', '客户管理', '订单管理', '个人中心'] }
+  {
+    role: 'admin',
+    roleName: '管理员',
+    perms: [
+      '商品管理', '客户管理', '订单管理', '库存管理',
+      '财务看板', '收支记录', '采购订单', '供应商管理',
+      '销售报表', '库存报表', '财务报表',
+      '用户管理', '员工管理', '权限管理', '操作日志', '数据字典',
+      '个人中心'
+    ]
+  },
+  {
+    role: 'user',
+    roleName: '普通用户',
+    perms: ['商品管理', '客户管理', '订单管理', '个人中心']
+  }
 ]
 // ---------- 生成随机产品名称（杯壶罐盒类） ----------
 function generateProductName() {
@@ -29,11 +42,18 @@ function generateProductName() {
   const materials = ['PP', 'Tritan', 'PPSU', 'ABS', 'PC', 'PET', 'HDPE', 'PS', 'SAN']
   const capacities = ['150ml', '200ml', '350ml', '500ml', '750ml', '1L', '1.2L', '1.5L', '2L', '2.5L', '3L', '5L']
   const colors = ['透明', '白色', '黑色', '蓝色', '绿色', '粉色', '磨砂', '渐变色']
-  const category = Mock.Random.pick(categories); const feature = Mock.Random.pick(category.features); const capacity = Mock.Random.pick(capacities); const material = Mock.Random.pick(materials); const color = Mock.Random.pick(colors)
+  const category = Mock.Random.pick(categories)
+  const feature = Mock.Random.pick(category.features)
+  const capacity = Mock.Random.pick(capacities)
+  const material = Mock.Random.pick(materials)
+  const color = Mock.Random.pick(colors)
   return `${capacity}${feature}${category.type}（${material}）${color}`
 }
 
-let productList = []; let inventoryList = []; let nextProductId = 1; let nextInventoryId = 1
+let productList = []
+let inventoryList = []
+let nextProductId = 1
+let nextInventoryId = 1
 
 function recalcProductStock(productId) {
   const total = inventoryList.filter(item => item.productId === productId).reduce((sum, item) => sum + item.quantity, 0)
@@ -44,7 +64,9 @@ function recalcProductStock(productId) {
 
 function generateInventoryForProduct(product) {
   const warehouses = ['A区-01货架', 'A区-02货架', 'B区-01货架', 'B区-02货架', 'C区-01货架', 'C区-02货架', 'D区-01货架']
-  const recordCount = Mock.Random.integer(1, 2); const totalStock = product.stock; let remaining = totalStock
+  const recordCount = Mock.Random.integer(1, 2)
+  const totalStock = product.stock
+  let remaining = totalStock
   for (let i = 0; i < recordCount; i++) {
     let quantity
     if (i === recordCount - 1) { quantity = remaining } else { quantity = Mock.Random.integer(0, remaining); remaining -= quantity }
@@ -169,8 +191,7 @@ Mock.mock('/api/users', 'post', (options) => {
 
 Mock.mock(/\/api\/users\/\d+/, 'put', (options) => {
   const id = parseInt(options.url.match(/\/api\/users\/(\d+)/)[1]); const body = JSON.parse(options.body)
-  const index = userList.findIndex(u => u.id === u.id)
-  if (index !== -1) { userList[index] = { ...userList[index], ...body }; return { code: 200, data: userList[index] } }
+  const index = userList.findIndex(u => u.id === id)  if (index !== -1) { userList[index] = { ...userList[index], ...body }; return { code: 200, data: userList[index] } }
   return { code: 404, message: '用户不存在' }
 })
 
@@ -185,12 +206,16 @@ Mock.mock(/\/api\/users\/(\d+)\/password/, 'put', (options) => {
   const id = parseInt(options.url.match(/\/api\/users\/(\d+)\/password/)[1])
   const { oldPassword, newPassword } = JSON.parse(options.body)
   const user = userList.find(u => u.id === id)
-  if (!user) { return { code: 404, message: '用户不存在' } }
-  if (user.password !== oldPassword) { return { code: 400, message: '原密码错误' } }
+  if (!user) {
+    return { code: 404, message: '用户不存在' }
+  }
+  if (user.password !== oldPassword) {
+    return { code: 400, message: '原密码错误' }
+  }
   user.password = newPassword
   return { code: 200, message: '密码修改成功' }
 })
-
+// 获取当前用户信息（用于刷新权限）
 Mock.mock('/api/user/info', 'get', () => {
   const token = localStorage.getItem('token')
   let userId = 1
@@ -205,7 +230,8 @@ Mock.mock('/api/user/info', 'get', () => {
     const rolePerm = rolePermissionsStore.find(r => r.role === user.role)
     perms = rolePerm ? rolePerm.perms : []
   }
-  const userInfo = { ...user, perms }; delete userInfo.password
+  const userInfo = { ...user, perms }
+  delete userInfo.password
   return { code: 200, data: userInfo }
 })
 
@@ -358,8 +384,7 @@ Mock.mock(/\/api\/orders\/\d+/, 'delete', (options) => {
   const order = orderList[orderIndex]
   if (['paid', 'shipped', 'completed'].includes(order.status)) { adjustInventoryByOrder(id, 'restore') }
   orderItemList = orderItemList.filter(item => item.orderId !== id)
-  orderList.splice(orderIndex, 1)
-  return { code: 200, message: '删除成功' }
+  orderList.splice(orderIndex, 1)  return { code: 200, message: '删除成功' }
 })
 
 function calculateFinanceMetrics() {
@@ -551,201 +576,7 @@ function initPurchaseOrders() {
     const daysAgo = Mock.Random.integer(0, 60)
     const orderDate = new Date(); orderDate.setDate(orderDate.getDate() - daysAgo)
     const orderDateStr = orderDate.toISOString().slice(0,10)
-    const totalAmount = Mock.Random.float(1000, 50000, 0, 2)
-    const order = { id: nextPurchaseOrderId++, orderNo: `PO${Mock.Random.date('yyyyMMdd')}${Mock.Random.string('number', 4)}`, supplierId: supplier.id, supplierName: supplier.name, totalAmount: totalAmount, orderDate: orderDateStr, status: status, createTime: orderDateStr + ' ' + Mock.Random.time('HH:mm:ss') }
-    purchaseOrderList.push(order)
-    const itemCount = Mock.Random.integer(1, 3)
-    const shuffledProducts = [...productList].sort(() => 0.5 - Math.random())
-    shuffledProducts.slice(0, itemCount).forEach(product => {
-      const quantity = Mock.Random.integer(10, 500); const unitPrice = product.price
-      purchaseOrderItemList.push({ id: nextPurchaseOrderItemId++, orderId: order.id, productId: product.id, productName: product.name, quantity: quantity, unitPrice: unitPrice, subtotal: quantity * unitPrice })
-    })
-  }
-}
-initPurchaseOrders()
-
-function getPurchaseOrderItems(orderId) {
-  return purchaseOrderItemList.filter(item => item.orderId === orderId)
-}
-
-Mock.mock(/\/api\/purchase\/orders(\?.*)?/, 'get', (options) => {
-  const url = new URL(options.url, 'http://localhost')
-  const page = parseInt(url.searchParams.get('page') || 1); const pageSize = parseInt(url.searchParams.get('pageSize') || 10)
-  const orderNo = url.searchParams.get('orderNo') || ''; const supplierName = url.searchParams.get('supplierName') || ''; const status = url.searchParams.get('status') || ''
-  let filtered = purchaseOrderList.filter(o => {
-    if (orderNo && !o.orderNo.includes(orderNo)) return false
-    if (supplierName && !o.supplierName.includes(supplierName)) return false
-    if (status && o.status !== status) return false
-    return true
-  })
-  const start = (page - 1) * pageSize
-  return { code: 200, data: { list: filtered.slice(start, start + pageSize).map(order => ({ ...order, items: getPurchaseOrderItems(order.id) })), total: filtered.length } }
-})
-
-Mock.mock('/api/purchase/orders', 'post', (options) => {
-  const body = JSON.parse(options.body)
-  const newOrder = { id: nextPurchaseOrderId++, orderNo: `PO${Mock.Random.date('yyyyMMdd')}${Mock.Random.string('number', 4)}`, supplierId: body.supplierId, supplierName: body.supplierName, totalAmount: body.totalAmount, orderDate: body.orderDate, status: 'pending', createTime: new Date().toLocaleString('zh-CN') }
-  purchaseOrderList.push(newOrder)
-  const items = body.items.map(item => ({ id: nextPurchaseOrderItemId++, orderId: newOrder.id, productId: item.productId, productName: item.productName, quantity: item.quantity, unitPrice: item.unitPrice, subtotal: item.quantity * item.unitPrice }))
-  purchaseOrderItemList.push(...items)
-  return { code: 200, data: { ...newOrder, items } }
-})
-
-Mock.mock(/\/api\/purchase\/orders\/\d+/, 'put', (options) => {
-  const id = parseInt(options.url.match(/\/api\/purchase\/orders\/(\d+)/)[1]); const body = JSON.parse(options.body)
-  const orderIndex = purchaseOrderList.findIndex(o => o.id === id)
-  if (orderIndex === -1) return { code: 404, message: '订单不存在' }
-  purchaseOrderList[orderIndex] = { ...purchaseOrderList[orderIndex], ...body }
-  purchaseOrderItemList = purchaseOrderItemList.filter(item => item.orderId !== id)
-  const newItems = body.items.map(item => ({ id: nextPurchaseOrderItemId++, orderId: id, productId: item.productId, productName: item.productName, quantity: item.quantity, unitPrice: item.unitPrice, subtotal: item.quantity * item.unitPrice }))
-  purchaseOrderItemList.push(...newItems)
-  return { code: 200, data: { ...purchaseOrderList[orderIndex], items: newItems } }
-})
-
-Mock.mock(/\/api\/purchase\/orders\/\d+\/status/, 'patch', (options) => {
-  const id = parseInt(options.url.match(/\/api\/purchase\/orders\/(\d+)/)[1]); const { status } = JSON.parse(options.body)
-  const order = purchaseOrderList.find(o => o.id === id)
-  if (!order) return { code: 404, message: '订单不存在' }
-  order.status = status
-  return { code: 200, data: order }
-})
-
-Mock.mock(/\/api\/purchase\/orders\/\d+/, 'delete', (options) => {
-  const id = parseInt(options.url.match(/\/api\/purchase\/orders\/(\d+)/)[1])
-  const orderIndex = purchaseOrderList.findIndex(o => o.id === id)
-  if (orderIndex === -1) return { code: 404, message: '订单不存在' }
-  purchaseOrderList.splice(orderIndex, 1)
-  purchaseOrderItemList = purchaseOrderItemList.filter(item => item.orderId !== id)
-  return { code: 200, message: '删除成功' }
-})
-
-Mock.mock('/api/reports/sales/summary', 'get', () => {
-  const totalSales = orderList.reduce((sum, o) => sum + o.totalAmount, 0)
-  const paidSales = orderList.filter(o => ['paid','shipped','completed'].includes(o.status)).reduce((s,o) => s + o.totalAmount, 0)
-  return { code: 200, data: { totalSales, paidSales, orderCount: orderList.length, monthGrowth: 12.5 } }
-})
-Mock.mock('/api/reports/sales/trend', 'get', () => {
-  const days = Array.from({length:30},(_,i)=>{ const d = new Date(); d.setDate(d.getDate() - (29-i)); return d.toISOString().slice(0,10) })
-  const trend = days.map(() => Mock.Random.integer(8000, 25000))
-  return { code: 200, data: { days, trend } }
-})
-Mock.mock('/api/reports/sales/top-products', 'get', () => {
-  const productSales = new Map()
-  orderItemList.forEach(item => {
-    const existing = productSales.get(item.productId) || { name: item.productName, soldCount: 0, amount: 0 }
-    existing.soldCount += item.quantity; existing.amount += item.quantity * item.unitPrice
-    productSales.set(item.productId, existing)
-  })
-  const top10 = Array.from(productSales.values()).sort((a,b) => b.soldCount - a.soldCount).slice(0,10)
-  return { code: 200, data: top10 }
-})
-
-Mock.mock('/api/reports/inventory/summary', 'get', () => {
-  const totalStock = productList.reduce((s,p) => s + p.stock, 0)
-  const lowStockCount = productList.filter(p => p.stock < 50).length
-  return { code: 200, data: { totalStock, lowStockCount, turnoverRate: 3.2 } }
-})
-Mock.mock('/api/reports/inventory/warehouse-distribution', 'get', () => {
-  const warehouseMap = new Map()
-  inventoryList.forEach(inv => { const wh = inv.warehouse; warehouseMap.set(wh, (warehouseMap.get(wh) || 0) + inv.quantity) })
-  return { code: 200, data: Array.from(warehouseMap.entries()).map(([name, value]) => ({ name, value })) }
-})
-Mock.mock('/api/reports/inventory/low-stock', 'get', () => ({ code: 200, data: productList.filter(p => p.stock < 50).slice(0,10).map(p => ({ name: p.name, stock: p.stock, threshold: 50 })) }))
-
-Mock.mock('/api/reports/finance/profit', 'get', () => {
-  const metrics = calculateFinanceMetrics()
-  return { code: 200, data: { profit: metrics.profit, totalIncome: metrics.totalIncome, totalExpense: metrics.totalExpense } }
-})
-Mock.mock('/api/reports/finance/trend', 'get', () => ({ code: 200, data: getTrendData() }))
-Mock.mock(/\/api\/reports\/finance\/records/, 'get', (options) => {
-  const url = new URL(options.url, 'http://localhost')
-  const page = parseInt(url.searchParams.get('page') || 1); const pageSize = parseInt(url.searchParams.get('pageSize') || 10)
-  let list = [...financeRecordList].sort((a, b) => b.date.localeCompare(a.date))
-  const total = list.length; const start = (page - 1) * pageSize
-  return { code: 200, data: { list: list.slice(start, start + pageSize), total } }
-})
-
-userList.forEach(u => {
-  if (!u.isSuperAdmin) u.password = '123456'
-})
-
-Mock.mock('/api/auth/login', 'post', (options) => {
-  const { username, password } = JSON.parse(options.body)
-  const user = userList.find(u => u.username === username && u.password === password)
-  if (user) {
-    let perms = []
-    if (user.isSuperAdmin) {
-      const allPerms = []
-      permissionGroups.forEach(group => { allPerms.push(...group.perms) })
-      perms = [...new Set(allPerms)]
-    } else {
-      const rolePerm = rolePermissionsStore.find(r => r.role === user.role)
-      perms = rolePerm ? rolePerm.perms : []
-    }
-    const token = 'mock-token-' + user.id
-    const userInfo = { ...user, perms }; delete userInfo.password
-    return { code: 200, data: { token, userInfo } }
-  } else {
-    return { code: 401, message: '用户名或密码错误' }
-  }
-})
-
-let operationLogs = []
-let nextLogId = 1
-
-function initOperationLogs() {
-  operationLogs = []; nextLogId = 1
-  const actions = ['登录', '登出', '新增商品', '编辑商品', '删除商品', '新增客户', '编辑客户', '新增订单', '修改订单状态', '新增用户', '编辑用户']
-  const users = [...userList]
-  for (let i = 0; i < 200; i++) {
-    const user = Mock.Random.pick(users); const action = Mock.Random.pick(actions); const daysAgo = Mock.Random.integer(0, 30)
-    const logTime = new Date(); logTime.setDate(logTime.getDate() - daysAgo)
-    operationLogs.push({ id: nextLogId++, time: logTime.toISOString().slice(0, 19).replace('T', ' '), user: user.realName, username: user.username, action: action, detail: `执行了${action}操作`, ip: Mock.Random.ip(), userAgent: 'Chrome/120.0.0.0' })
-  }
-  operationLogs.sort((a, b) => b.time.localeCompare(a.time))
-}
-initOperationLogs()
-
-Mock.mock(/\/api\/logs(\?.*)?/, 'get', (options) => {
-  const url = new URL(options.url, 'http://localhost')
-  const page = parseInt(url.searchParams.get('page') || 1); const pageSize = parseInt(url.searchParams.get('pageSize') || 10)
-  const username = url.searchParams.get('username') || ''; const action = url.searchParams.get('action') || ''
-  const startDate = url.searchParams.get('startDate'); const endDate = url.searchParams.get('endDate')
-  let filtered = operationLogs.filter(log => {
-    if (username && !log.username.includes(username)) return false
-    if (action && !log.action.includes(action)) return false
-    if (startDate && log.time < startDate) return false
-    if (endDate && log.time > endDate) return false
-    return true
-  })
-  const total = filtered.length; const start = (page - 1) * pageSize
-  return { code: 200, data: { list: filtered.slice(start, start + pageSize), total } }
-})
-
-Mock.mock('/api/logs', 'post', (options) => {
-  const body = JSON.parse(options.body)
-  const newLog = { id: nextLogId++, time: new Date().toISOString().slice(0, 19).replace('T', ' '), ...body }
-  operationLogs.unshift(newLog)
-  return { code: 200, data: newLog }
-})
-
-const orderStatusDict = [{ code: 'pending', name: '待付款' }, { code: 'paid', name: '已付款' }, { code: 'shipped', name: '已发货' }, { code: 'completed', name: '已完成' }, { code: 'cancelled', name: '已取消' }]
-const categoryDict = [{ code: 'cup', name: '杯类' }, { code: 'bottle', name: '壶类' }, { code: 'jar', name: '罐类' }, { code: 'box', name: '盒类' }]
-
-Mock.mock('/api/dict/order-status', 'get', () => ({ code: 200, data: orderStatusDict }))
-Mock.mock('/api/dict/categories', 'get', () => ({ code: 200, data: categoryDict }))
-
-Mock.mock('/api/permissions/roles', 'get', () => ({ code: 200, data: rolePermissionsStore }))
-
-Mock.mock('/api/permissions/roles', 'put', (options) => {
-  const { role, perms } = JSON.parse(options.body)
-  const index = rolePermissionsStore.findIndex(r => r.role === role)
-  if (index !== -1) {
-    rolePermissionsStore[index].perms = perms
-    return { code: 200, data: rolePermissionsStore[index], message: '保存成功' }
-  }
-  return { code: 404, message: '角色不存在' }
-})    const order = { id: nextPurchaseOrderId++, orderNo: `PO${Mock.Random.date('yyyyMMdd')}${Mock.Random.string('number', 4)}`, supplierId: supplier.id, supplierName: supplier.name, totalAmount: totalAmount, orderDate: orderDateStr, status: status, createTime: orderDateStr + ' ' + Mock.Random.time('HH:mm:ss') }
+    const totalAmount = Mock.Random.float(1000, 50000, 0, 2)    const order = { id: nextPurchaseOrderId++, orderNo: `PO${Mock.Random.date('yyyyMMdd')}${Mock.Random.string('number', 4)}`, supplierId: supplier.id, supplierName: supplier.name, totalAmount: totalAmount, orderDate: orderDateStr, status: status, createTime: orderDateStr + ' ' + Mock.Random.time('HH:mm:ss') }
     purchaseOrderList.push(order)
     const itemCount = Mock.Random.integer(1, 3)
     const shuffledProducts = [...productList].sort(() => 0.5 - Math.random())
