@@ -37,3 +37,11 @@ export function getUserInfo() {
     method: 'get'
   })
 }
+
+export function changePassword(id, data) {
+  return request({
+    url: `/users/${id}/password`,
+    method: 'put',
+    data
+  })
+}
