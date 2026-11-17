@@ -191,7 +191,8 @@ Mock.mock('/api/users', 'post', (options) => {
 
 Mock.mock(/\/api\/users\/\d+/, 'put', (options) => {
   const id = parseInt(options.url.match(/\/api\/users\/(\d+)/)[1]); const body = JSON.parse(options.body)
-  const index = userList.findIndex(u => u.id === id)  if (index !== -1) { userList[index] = { ...userList[index], ...body }; return { code: 200, data: userList[index] } }
+  const index = userList.findIndex(u => u.id === id)
+  if (index !== -1) { userList[index] = { ...userList[index], ...body }; return { code: 200, data: userList[index] } }
   return { code: 404, message: '用户不存在' }
 })
 
@@ -384,7 +385,8 @@ Mock.mock(/\/api\/orders\/\d+/, 'delete', (options) => {
   const order = orderList[orderIndex]
   if (['paid', 'shipped', 'completed'].includes(order.status)) { adjustInventoryByOrder(id, 'restore') }
   orderItemList = orderItemList.filter(item => item.orderId !== id)
-  orderList.splice(orderIndex, 1)  return { code: 200, message: '删除成功' }
+  orderList.splice(orderIndex, 1)
+  return { code: 200, message: '删除成功' }
 })
 
 function calculateFinanceMetrics() {
@@ -576,7 +578,8 @@ function initPurchaseOrders() {
     const daysAgo = Mock.Random.integer(0, 60)
     const orderDate = new Date(); orderDate.setDate(orderDate.getDate() - daysAgo)
     const orderDateStr = orderDate.toISOString().slice(0,10)
-    const totalAmount = Mock.Random.float(1000, 50000, 0, 2)    const order = { id: nextPurchaseOrderId++, orderNo: `PO${Mock.Random.date('yyyyMMdd')}${Mock.Random.string('number', 4)}`, supplierId: supplier.id, supplierName: supplier.name, totalAmount: totalAmount, orderDate: orderDateStr, status: status, createTime: orderDateStr + ' ' + Mock.Random.time('HH:mm:ss') }
+    const totalAmount = Mock.Random.float(1000, 50000, 0, 2)
+    const order = { id: nextPurchaseOrderId++, orderNo: `PO${Mock.Random.date('yyyyMMdd')}${Mock.Random.string('number', 4)}`, supplierId: supplier.id, supplierName: supplier.name, totalAmount: totalAmount, orderDate: orderDateStr, status: status, createTime: orderDateStr + ' ' + Mock.Random.time('HH:mm:ss') }
     purchaseOrderList.push(order)
     const itemCount = Mock.Random.integer(1, 3)
     const shuffledProducts = [...productList].sort(() => 0.5 - Math.random())
