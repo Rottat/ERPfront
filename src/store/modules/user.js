@@ -1,5 +1,5 @@
 // src/store/modules/user.js
-import { getUserList, addUser, updateUser, deleteUser, getUserInfo } from '@/api/user'
+import { getUserList, addUser, updateUser, deleteUser, getUserInfo, changePassword as changePasswordApi } from '@/api/user'
 
 export default {
   namespaced: true,
@@ -78,6 +78,12 @@ export default {
     loginSuccess({ commit }, { token, userInfo }) {
       localStorage.setItem('token', token)
       commit('SET_USER', userInfo)
+    },
+    // 修改当前登录用户密码
+    async changePassword({ state }, { oldPassword, newPassword }) {
+      const id = state.userInfo && state.userInfo.id
+      if (!id) throw new Error('当前用户信息缺失')
+      await changePasswordApi(id, { oldPassword, newPassword })
     },
     // 退出登录
     logout({ commit }) {
