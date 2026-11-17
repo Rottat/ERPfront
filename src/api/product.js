@@ -2,7 +2,7 @@ import request from '@/utils/request'
 
 export function getProductList(params) {
   return request({
-    url: '/api/products',   // 原为 '/products'
+    url: '/products',
     method: 'get',
     params
   })
@@ -10,7 +10,7 @@ export function getProductList(params) {
 
 export function addProduct(data) {
   return request({
-    url: '/api/products',
+    url: '/products',
     method: 'post',
     data
   })
@@ -18,7 +18,7 @@ export function addProduct(data) {
 
 export function updateProduct(id, data) {
   return request({
-    url: `/api/products/${id}`,
+    url: `/products/${id}`,
     method: 'put',
     data
   })
@@ -26,7 +26,7 @@ export function updateProduct(id, data) {
 
 export function deleteProduct(id) {
   return request({
-    url: `/api/products/${id}`,
+    url: `/products/${id}`,
     method: 'delete'
   })
 }
